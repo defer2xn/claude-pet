@@ -15,8 +15,11 @@ async function loadState() {
   try {
     const data = await fs.readFile(STATE_PATH, "utf-8");
     return JSON.parse(data);
-  } catch {
-    return null;
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "ENOENT") {
+      return null;
+    }
+    throw new Error(`\u5BA0\u7269\u72B6\u6001\u6587\u4EF6\u635F\u574F\u6216\u4E0D\u53EF\u8BFB: ${STATE_PATH}`);
   }
 }
 async function saveState(state) {
@@ -38,7 +41,7 @@ function resolveState(raw) {
   if (raw.pendingLevelUp) state = "levelup";
   else if (minutesSinceLastActivity > 10) state = "sleeping";
   else if (hunger < 30) state = "hungry";
-  else if (mood > 80) state = "happy";
+  else if (minutesSinceLastFeed < 3) state = "happy";
   else state = "idle";
   return { ...raw, hunger, mood, state };
 }
@@ -73,6 +76,7 @@ function feed(raw) {
     ...raw,
     hungerAtLastFeed: Math.min(100, resolved.hunger + 50),
     lastFeed: now,
+    lastActivity: now,
     moodBase: Math.min(100, raw.moodBase + 20)
   };
 }
@@ -125,9 +129,7 @@ var colors = {
   "M": [195, 118, 42],
   "g": [200, 192, 182],
   "x": [255, 220, 60],
-  // 星星 / 升级闪光
   "z": [160, 180, 220]
-  // ZZZ 睡眠标记
 };
 var idle0 = [
   "................................",
@@ -135,32 +137,32 @@ var idle0 = [
   ".....33..............33.........",
   "....333..............333........",
   "...3P33..............33P3.......",
-  "..33p333............333p33.....",
-  "..333333333333333333333333.....",
-  "..335533355335533553355333.....",
-  "..333333333333333333333333.....",
-  "..33heE333333333333Eeh3333.....",
-  "..33hkE333333333333Ekh3333.....",
-  "..333eE333333333333Ee33333.....",
-  "..333333333333333333333333.....",
-  "...33333333333333333333333.....",
-  "...333333333333333333333.......",
-  "....33333333pnp333333333.......",
-  "....3333g333p.p333g33333.......",
-  ".....333333MwwwM3333333........",
-  ".....33333wwwwwww33333.........",
-  "....3335wwwwwwwwwww5333........",
-  "...33355wwwwwwwwwww55333.......",
-  "..333553wwwwwwwwwww355333......",
-  "..555333wwwwwwwwwww333555......",
-  ".3553333wwwwwwwwwww3333553.....",
-  ".35533333wwwwwwwww33333553.....",
-  "..5533333333www3333333355......",
-  "..553333333333333333333553.....",
-  "...553333333333333333355.......",
-  "...5533333......3333355........",
-  "....3wW33........33Ww3.........",
-  ".....ww3..........3ww..........",
+  "..33p333............333p33......",
+  "..333333333333333333333333......",
+  "..335533355335533553355333......",
+  "..333333333333333333333333......",
+  "..33heE333333333333Eeh3333......",
+  "..33hkE333333333333Ekh3333......",
+  "..333eE333333333333Ee33333......",
+  "..333333333333333333333333......",
+  "...33333333333333333333333......",
+  "...333333333333333333333........",
+  "....33333333pnp333333333........",
+  "....3333g333p.p333g33333........",
+  ".....333333MwwwM3333333.........",
+  ".....33333wwwwwww33333..........",
+  "....3335wwwwwwwwwww5333.........",
+  "...33355wwwwwwwwwww55333........",
+  "..333553wwwwwwwwwww355333.......",
+  "..555333wwwwwwwwwww333555.......",
+  ".3553333wwwwwwwwwww3333553......",
+  ".35533333wwwwwwwww33333553......",
+  "..5533333333www3333333355.......",
+  "..553333333333333333333553......",
+  "...553333333333333333355........",
+  "...5533333......3333355.........",
+  "....3wW33........33Ww3..........",
+  ".....ww3..........3ww...........",
   "................................"
 ];
 var idle1 = idle0.map((row, i) => {
@@ -173,20 +175,20 @@ var happy0 = idle0.map((row, i) => {
   if (i === 9) return row.replace(/heE/g, "3n3").replace(/Eeh/g, "3n3");
   if (i === 10) return row.replace(/hkE/g, "3.3").replace(/Ekh/g, "3.3");
   if (i === 11) return row.replace(/eE/g, "33").replace(/Ee/g, "33");
-  if (i === 12) return "..33p333333333333333333p333.....";
-  if (i === 15) return "....33333333pnp333333333.......";
+  if (i === 12) return "..33p33333333333333333p333......";
+  if (i === 15) return "....33333333pnp333333333........";
   return row;
 });
 var happy1 = happy0.map((row, i) => {
-  if (i === 12) return "..333333333333333333333333.....";
+  if (i === 12) return "..333333333333333333333333......";
   return row;
 });
 var hungry0 = idle0.map((row, i) => {
-  if (i === 9) return "..333333333333333333333333.....";
+  if (i === 9) return "..333333333333333333333333......";
   if (i === 10) return row.replace(/hkE/g, "3k3").replace(/Ekh/g, "3k3");
   if (i === 11) return row.replace(/eE/g, "33").replace(/Ee/g, "33");
-  if (i === 15) return "....33333333333333333333.......";
-  if (i === 16) return "....3333g333pnp333g33333.......";
+  if (i === 15) return "....33333333333333333333........";
+  if (i === 16) return "....3333g333pnp333g33333........";
   return row;
 });
 var hungry1 = hungry0.map((row, i) => {
@@ -194,14 +196,14 @@ var hungry1 = hungry0.map((row, i) => {
   return row;
 });
 var sleeping0 = idle0.map((row, i) => {
-  if (i === 2) return ".....33..........zzz.33........";
+  if (i === 2) return ".....33.........zzz.33..........";
   if (i === 9) return row.replace(/heE/g, "3n3").replace(/Eeh/g, "3n3");
   if (i === 10) return row.replace(/hkE/g, "333").replace(/Ekh/g, "333");
   if (i === 11) return row.replace(/eE/g, "33").replace(/Ee/g, "33");
   return row;
 });
 var sleeping1 = idle0.map((row, i) => {
-  if (i === 1) return "......3..........zzz.3..........";
+  if (i === 1) return "......3.........zzz.3...........";
   if (i === 9) return row.replace(/heE/g, "3n3").replace(/Eeh/g, "3n3");
   if (i === 10) return row.replace(/hkE/g, "333").replace(/Ekh/g, "333");
   if (i === 11) return row.replace(/eE/g, "33").replace(/Ee/g, "33");
@@ -210,16 +212,16 @@ var sleeping1 = idle0.map((row, i) => {
 var levelup0 = idle0.map((row, i) => {
   if (i === 0) return "...x..........x.......x.........";
   if (i === 3) return "....333.....x........333........";
-  if (i === 6) return ".x333333333333333333333333.....";
-  if (i === 13) return "..x33333333333333333333333.....";
-  if (i === 27) return "...553333333333333333355..x....";
+  if (i === 6) return ".x333333333333333333333333......";
+  if (i === 13) return "..x33333333333333333333333......";
+  if (i === 27) return "...553333333333333333355..x.....";
   return row;
 });
 var levelup1 = idle0.map((row, i) => {
   if (i === 1) return "......3.....x........3..........";
-  if (i === 5) return "..33p333......x.....333p33.....";
-  if (i === 14) return "...333333333333333333333..x....";
-  if (i === 25) return ".x5533333333www3333333355......";
+  if (i === 5) return "..33p333......x.....333p33......";
+  if (i === 14) return "...333333333333333333333..x.....";
+  if (i === 25) return ".x5533333333www3333333355.......";
   return row;
 });
 var CAT_DEFINITION = {
@@ -689,18 +691,24 @@ function notAdopted() {
   return "\u5C1A\u672A\u9886\u517B\u5BA0\u7269\uFF0C\u8BF7\u5148\u4F7F\u7528 /pet switch <type> \u9886\u517B\u3002\u53EF\u9009\uFF1A" + PET_TYPES.join(", ");
 }
 function registerTools(server2) {
-  server2.tool("pet_show", "\u663E\u793A\u5BA0\u7269\u50CF\u7D20\u753B", {}, async () => {
+  server2.tool("pet_show", "\u663E\u793A\u5BA0\u7269\u50CF\u7D20\u753B", { animation: z.boolean().optional().describe("\u662F\u5426\u663E\u793A\u4E24\u5E27\u52A8\u753B\uFF08\u9ED8\u8BA4\u4EC5\u7B2C\u4E00\u5E27\uFF09") }, async ({ animation }) => {
     const raw = await loadState();
     if (!raw) return { content: [{ type: "text", text: notAdopted() }] };
     const resolved = resolveState(raw);
     const pet = PETS[raw.type];
-    const frames = pet.frames[resolved.state] ?? pet.frames["idle"];
-    const frame = frames[0];
-    const ansi = renderToAnsi(frame, pet.colors);
+    const frames = pet.frames[resolved.state];
+    const parts = [];
+    if (animation && frames.length > 1) {
+      parts.push({ type: "text", text: renderToAnsi(frames[0], pet.colors) });
+      parts.push({ type: "text", text: "\n--- frame 2 ---\n" });
+      parts.push({ type: "text", text: renderToAnsi(frames[1], pet.colors) });
+    } else {
+      parts.push({ type: "text", text: renderToAnsi(frames[0], pet.colors) });
+    }
     if (resolved.state === "levelup") {
       await saveState({ ...raw, pendingLevelUp: false });
     }
-    return { content: [{ type: "text", text: ansi }] };
+    return { content: parts };
   });
   server2.tool("pet_feed", "\u5582\u98DF\u5BA0\u7269", {}, async () => {
     const raw = await loadState();
@@ -745,6 +753,12 @@ function registerTools(server2) {
     async ({ type, name }) => {
       const pet = PETS[type];
       const petName = name ?? pet.defaultName;
+      const existing = await loadState();
+      if (existing) {
+        const updated = { ...existing, type, name: petName };
+        await saveState(updated);
+        return { content: [{ type: "text", text: `\u5DF2\u5207\u6362\u4E3A ${petName}\uFF08${type}\uFF09\uFF0C\u4FDD\u7559\u4E86\u6240\u6709\u8FDB\u5EA6\uFF08Lv.${existing.level}, XP: ${existing.xp}\uFF09\u3002` }] };
+      }
       const state = createDefaultState(type, petName);
       await saveState(state);
       return { content: [{ type: "text", text: `\u6210\u529F\u9886\u517B\u4E86 ${petName}\uFF08${type}\uFF09\uFF01\u8F93\u5165 /pet \u67E5\u770B\u4F60\u7684\u5BA0\u7269\u3002` }] };

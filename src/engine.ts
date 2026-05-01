@@ -17,7 +17,7 @@ export function resolveState(raw: RawPetState): ResolvedPetState {
   if (raw.pendingLevelUp) state = "levelup";
   else if (minutesSinceLastActivity > 10) state = "sleeping";
   else if (hunger < 30) state = "hungry";
-  else if (mood > 80) state = "happy";
+  else if (minutesSinceLastFeed < 3) state = "happy";
   else state = "idle";
 
   return { ...raw, hunger, mood, state };
@@ -56,6 +56,7 @@ export function feed(raw: RawPetState): RawPetState {
     ...raw,
     hungerAtLastFeed: Math.min(100, resolved.hunger + 50),
     lastFeed: now,
+    lastActivity: now,
     moodBase: Math.min(100, raw.moodBase + 20),
   };
 }

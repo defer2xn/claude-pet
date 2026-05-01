@@ -31,5 +31,5 @@ export interface PetDefinition {
   type: PetType;
   defaultName: string;
   colors: ColorMap;
-  frames: Record<string, Frame[]>;
+  frames: Record<PetStateKind, Frame[]>;
 }

@@ -13,21 +13,27 @@ function notAdopted(): string {
 }
 
 export function registerTools(server: McpServer): void {
-  server.tool("pet_show", "显示宠物像素画", {}, async () => {
+  server.tool("pet_show", "显示宠物像素画", { animation: z.boolean().optional().describe("是否显示两帧动画（默认仅第一帧）") }, async ({ animation }) => {
     const raw = await loadState();
     if (!raw) return { content: [{ type: "text", text: notAdopted() }] };
     const resolved = resolveState(raw);
     const pet = PETS[raw.type];
-    const frames = pet.frames[resolved.state] ?? pet.frames["idle"];
-    const frame = frames[0];
-    const ansi = renderToAnsi(frame, pet.colors);
+    const frames = pet.frames[resolved.state];
 
-    // levelup 状态展示后清除标记
+    const parts: Array<{ type: "text"; text: string }> = [];
+    if (animation && frames.length > 1) {
+      parts.push({ type: "text", text: renderToAnsi(frames[0], pet.colors) });
+      parts.push({ type: "text", text: "\n--- frame 2 ---\n" });
+      parts.push({ type: "text", text: renderToAnsi(frames[1], pet.colors) });
+    } else {
+      parts.push({ type: "text", text: renderToAnsi(frames[0], pet.colors) });
+    }
+
     if (resolved.state === "levelup") {
       await saveState({ ...raw, pendingLevelUp: false });
     }
 
-    return { content: [{ type: "text", text: ansi }] };
+    return { content: parts };
   });
 
   server.tool("pet_feed", "喂食宠物", {}, async () => {
@@ -75,6 +81,12 @@ export function registerTools(server: McpServer): void {
     async ({ type, name }) => {
       const pet = PETS[type];
       const petName = name ?? pet.defaultName;
+      const existing = await loadState();
+      if (existing) {
+        const updated = { ...existing, type, name: petName };
+        await saveState(updated);
+        return { content: [{ type: "text", text: `已切换为 ${petName}（${type}），保留了所有进度（Lv.${existing.level}, XP: ${existing.xp}）。` }] };
+      }
       const state = createDefaultState(type, petName);
       await saveState(state);
       return { content: [{ type: "text", text: `成功领养了 ${petName}（${type}）！输入 /pet 查看你的宠物。` }] };

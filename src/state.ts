@@ -10,8 +10,11 @@ export async function loadState(): Promise<RawPetState | null> {
   try {
     const data = await fs.readFile(STATE_PATH, "utf-8");
     return JSON.parse(data) as RawPetState;
-  } catch {
-    return null;
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && err.code === "ENOENT") {
+      return null;
+    }
+    throw new Error(`宠物状态文件损坏或不可读: ${STATE_PATH}`);
   }
 }
 

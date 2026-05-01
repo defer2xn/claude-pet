@@ -9,8 +9,10 @@ NOW=$(date +%s000)
 case "$EVENT" in
   tool_use)
     jq --arg now "$NOW" '
+      .previousLevel = .level |
       .xp += 1 | .totalInteractions += 1 | .lastActivity = ($now | tonumber) |
-      .level = (((.xp / 10) | sqrt | floor) + 1)
+      .level = (((.xp / 10) | sqrt | floor) + 1) |
+      if .level > .previousLevel then .pendingLevelUp = true else . end
     ' "$STATE" > "$TMP" && mv "$TMP" "$STATE"
     ;;
   task_complete)
@@ -27,7 +29,6 @@ case "$EVENT" in
       OLD=$(jq -r '.previousLevel' "$STATE")
       NEW=$(jq -r '.level' "$STATE")
       echo "{\"continue\":true,\"systemMessage\":\"🎉 $NAME 升级了！Lv.$OLD → Lv.$NEW！\"}"
-      jq '.pendingLevelUp = false' "$STATE" > "$TMP" && mv "$TMP" "$STATE"
     fi
     ;;
   session_start)
