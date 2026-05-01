@@ -1,6 +1,8 @@
 #!/bin/bash
 STATE="$HOME/.claude-pet/state.json"
 [ ! -f "$STATE" ] && echo "🥚 /pet switch 领养宠物" && exit 0
+command -v jq >/dev/null 2>&1 || { echo "⚠️ 需要安装 jq"; exit 0; }
+
 
 VISIBLE=$(jq -r '.visible // true' "$STATE")
 [ "$VISIBLE" = "false" ] && exit 0

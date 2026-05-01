@@ -1,6 +1,7 @@
 #!/bin/bash
 STATE="$HOME/.claude-pet/state.json"
 [ ! -f "$STATE" ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
 
 EVENT="$1"
 TMP="${STATE}.tmp"

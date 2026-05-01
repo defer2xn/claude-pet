@@ -23,10 +23,14 @@ async function loadState() {
   }
 }
 async function saveState(state) {
-  await fs.mkdir(STATE_DIR, { recursive: true });
-  const tmp = STATE_PATH + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(state, null, 2));
-  await fs.rename(tmp, STATE_PATH);
+  try {
+    await fs.mkdir(STATE_DIR, { recursive: true });
+    const tmp = STATE_PATH + ".tmp";
+    await fs.writeFile(tmp, JSON.stringify(state, null, 2));
+    await fs.rename(tmp, STATE_PATH);
+  } catch (err) {
+    console.error(`\u4FDD\u5B58\u5BA0\u7269\u72B6\u6001\u5931\u8D25: ${err}`);
+  }
 }
 
 // src/engine.ts
@@ -690,78 +694,92 @@ var PET_TYPES = ["cat", "shiba", "penguin", "hamster", "slime"];
 function notAdopted() {
   return "\u5C1A\u672A\u9886\u517B\u5BA0\u7269\uFF0C\u8BF7\u5148\u4F7F\u7528 /pet switch <type> \u9886\u517B\u3002\u53EF\u9009\uFF1A" + PET_TYPES.join(", ");
 }
+function errResult(msg) {
+  return { content: [{ type: "text", text: msg }] };
+}
 function registerTools(server2) {
   server2.tool("pet_show", "\u663E\u793A\u5BA0\u7269\u50CF\u7D20\u753B", { animation: z.boolean().optional().describe("\u662F\u5426\u663E\u793A\u4E24\u5E27\u52A8\u753B\uFF08\u9ED8\u8BA4\u4EC5\u7B2C\u4E00\u5E27\uFF09") }, async ({ animation }) => {
-    const raw = await loadState();
-    if (!raw) return { content: [{ type: "text", text: notAdopted() }] };
-    const resolved = resolveState(raw);
-    const pet = PETS[raw.type];
-    const frames = pet.frames[resolved.state];
-    const parts = [];
-    if (animation && frames.length > 1) {
-      parts.push({ type: "text", text: renderToAnsi(frames[0], pet.colors) });
-      parts.push({ type: "text", text: "\n--- frame 2 ---\n" });
-      parts.push({ type: "text", text: renderToAnsi(frames[1], pet.colors) });
-    } else {
-      parts.push({ type: "text", text: renderToAnsi(frames[0], pet.colors) });
+    try {
+      const raw = await loadState();
+      if (!raw) return errResult(notAdopted());
+      const resolved = resolveState(raw);
+      const pet = PETS[raw.type];
+      const frames = pet.frames[resolved.state];
+      const parts = [];
+      if (animation && frames.length > 1) {
+        parts.push({ type: "text", text: renderToAnsi(frames[0], pet.colors) });
+        parts.push({ type: "text", text: "\n--- frame 2 ---\n" });
+        parts.push({ type: "text", text: renderToAnsi(frames[1], pet.colors) });
+      } else {
+        parts.push({ type: "text", text: renderToAnsi(frames[0], pet.colors) });
+      }
+      if (resolved.state === "levelup") {
+        await saveState({ ...raw, pendingLevelUp: false });
+      }
+      return { content: parts };
+    } catch (err) {
+      return errResult(`\u663E\u793A\u5BA0\u7269\u5931\u8D25: ${err}`);
     }
-    if (resolved.state === "levelup") {
-      await saveState({ ...raw, pendingLevelUp: false });
-    }
-    return { content: parts };
   });
   server2.tool("pet_feed", "\u5582\u98DF\u5BA0\u7269", {}, async () => {
-    const raw = await loadState();
-    if (!raw) return { content: [{ type: "text", text: notAdopted() }] };
-    let updated = feed(raw);
-    updated = addXP(updated, 2);
-    await saveState(updated);
-    const resolved = resolveState(updated);
-    return {
-      content: [{
-        type: "text",
-        text: `\u5DF2\u5582\u98DF ${updated.name}\uFF01\u9965\u997F\u5EA6: ${Math.round(resolved.hunger)}/100, \u5FC3\u60C5: ${Math.round(resolved.mood)}/100, XP +2`
-      }]
-    };
+    try {
+      const raw = await loadState();
+      if (!raw) return errResult(notAdopted());
+      let updated = feed(raw);
+      updated = addXP(updated, 2);
+      await saveState(updated);
+      const resolved = resolveState(updated);
+      return errResult(`\u5DF2\u5582\u98DF ${updated.name}\uFF01\u9965\u997F\u5EA6: ${Math.round(resolved.hunger)}/100, \u5FC3\u60C5: ${Math.round(resolved.mood)}/100, XP +2`);
+    } catch (err) {
+      return errResult(`\u5582\u98DF\u5931\u8D25: ${err}`);
+    }
   });
   server2.tool("pet_status", "\u67E5\u770B\u5BA0\u7269\u72B6\u6001", {}, async () => {
-    const raw = await loadState();
-    if (!raw) return { content: [{ type: "text", text: notAdopted() }] };
-    const resolved = resolveState(raw);
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          name: resolved.name,
-          type: resolved.type,
-          level: resolved.level,
-          xp: resolved.xp,
-          hunger: Math.round(resolved.hunger),
-          mood: Math.round(resolved.mood),
-          state: resolved.state,
-          totalInteractions: resolved.totalInteractions,
-          pendingLevelUp: resolved.pendingLevelUp,
-          createdAt: resolved.createdAt
-        }, null, 2)
-      }]
-    };
+    try {
+      const raw = await loadState();
+      if (!raw) return errResult(notAdopted());
+      const resolved = resolveState(raw);
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            name: resolved.name,
+            type: resolved.type,
+            level: resolved.level,
+            xp: resolved.xp,
+            hunger: Math.round(resolved.hunger),
+            mood: Math.round(resolved.mood),
+            state: resolved.state,
+            totalInteractions: resolved.totalInteractions,
+            pendingLevelUp: resolved.pendingLevelUp,
+            createdAt: resolved.createdAt
+          }, null, 2)
+        }]
+      };
+    } catch (err) {
+      return errResult(`\u67E5\u8BE2\u72B6\u6001\u5931\u8D25: ${err}`);
+    }
   });
   server2.tool(
     "pet_switch",
     "\u5207\u6362/\u9886\u517B\u5BA0\u7269",
     { type: z.enum(["cat", "shiba", "penguin", "hamster", "slime"]).describe("\u5BA0\u7269\u7C7B\u578B"), name: z.string().optional().describe("\u5BA0\u7269\u540D\u5B57") },
     async ({ type, name }) => {
-      const pet = PETS[type];
-      const petName = name ?? pet.defaultName;
-      const existing = await loadState();
-      if (existing) {
-        const updated = { ...existing, type, name: petName };
-        await saveState(updated);
-        return { content: [{ type: "text", text: `\u5DF2\u5207\u6362\u4E3A ${petName}\uFF08${type}\uFF09\uFF0C\u4FDD\u7559\u4E86\u6240\u6709\u8FDB\u5EA6\uFF08Lv.${existing.level}, XP: ${existing.xp}\uFF09\u3002` }] };
+      try {
+        const pet = PETS[type];
+        const petName = name ?? pet.defaultName;
+        const existing = await loadState();
+        if (existing) {
+          const updated = { ...existing, type, name: petName };
+          await saveState(updated);
+          return errResult(`\u5DF2\u5207\u6362\u4E3A ${petName}\uFF08${type}\uFF09\uFF0C\u4FDD\u7559\u4E86\u6240\u6709\u8FDB\u5EA6\uFF08Lv.${existing.level}, XP: ${existing.xp}\uFF09\u3002`);
+        }
+        const state = createDefaultState(type, petName);
+        await saveState(state);
+        return errResult(`\u6210\u529F\u9886\u517B\u4E86 ${petName}\uFF08${type}\uFF09\uFF01\u8F93\u5165 /pet \u67E5\u770B\u4F60\u7684\u5BA0\u7269\u3002`);
+      } catch (err) {
+        return errResult(`\u5207\u6362\u5BA0\u7269\u5931\u8D25: ${err}`);
       }
-      const state = createDefaultState(type, petName);
-      await saveState(state);
-      return { content: [{ type: "text", text: `\u6210\u529F\u9886\u517B\u4E86 ${petName}\uFF08${type}\uFF09\uFF01\u8F93\u5165 /pet \u67E5\u770B\u4F60\u7684\u5BA0\u7269\u3002` }] };
     }
   );
   server2.tool(
@@ -769,11 +787,15 @@ function registerTools(server2) {
     "\u91CD\u547D\u540D\u5BA0\u7269",
     { name: z.string().describe("\u65B0\u540D\u5B57") },
     async ({ name }) => {
-      const raw = await loadState();
-      if (!raw) return { content: [{ type: "text", text: notAdopted() }] };
-      const updated = { ...raw, name };
-      await saveState(updated);
-      return { content: [{ type: "text", text: `\u5BA0\u7269\u5DF2\u66F4\u540D\u4E3A\u300C${name}\u300D\uFF01` }] };
+      try {
+        const raw = await loadState();
+        if (!raw) return errResult(notAdopted());
+        const updated = { ...raw, name };
+        await saveState(updated);
+        return errResult(`\u5BA0\u7269\u5DF2\u66F4\u540D\u4E3A\u300C${name}\u300D\uFF01`);
+      } catch (err) {
+        return errResult(`\u91CD\u547D\u540D\u5931\u8D25: ${err}`);
+      }
     }
   );
 }

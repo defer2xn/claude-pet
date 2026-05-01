@@ -19,8 +19,12 @@ export async function loadState(): Promise<RawPetState | null> {
 }
 
 export async function saveState(state: RawPetState): Promise<void> {
-  await fs.mkdir(STATE_DIR, { recursive: true });
-  const tmp = STATE_PATH + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(state, null, 2));
-  await fs.rename(tmp, STATE_PATH);
+  try {
+    await fs.mkdir(STATE_DIR, { recursive: true });
+    const tmp = STATE_PATH + ".tmp";
+    await fs.writeFile(tmp, JSON.stringify(state, null, 2));
+    await fs.rename(tmp, STATE_PATH);
+  } catch (err) {
+    console.error(`保存宠物状态失败: ${err}`);
+  }
 }
