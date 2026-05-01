@@ -2,12 +2,21 @@ import type { PetType, RawPetState, ResolvedPetState, PetStateKind } from "./pet
 
 export function resolveState(raw: RawPetState): ResolvedPetState {
   const now = Date.now();
-  const hunger = Math.min(100, (now - raw.lastFeed) / 36000);
-  const mood = Math.max(0, raw.moodBase - Math.floor((now - raw.lastActivity) / 3600000));
+  const minutesSinceLastFeed = (now - raw.lastFeed) / 60000;
+  const minutesSinceLastActivity = (now - raw.lastActivity) / 60000;
 
+  // 饥饿度：从上次喂食时的基准值随时间衰减（每分钟 -1）
+  const hunger = Math.min(100, Math.max(0, raw.hungerAtLastFeed - Math.floor(minutesSinceLastFeed)));
+
+  // 心情：饥饿时下降更快
+  const moodDecay = hunger < 30 ? minutesSinceLastActivity * 0.5 : minutesSinceLastActivity * 0.1;
+  const mood = Math.min(100, Math.max(0, raw.moodBase - moodDecay));
+
+  // 状态推导（优先级：levelup → sleeping → hungry → happy → idle）
   let state: PetStateKind;
-  if (hunger > 70) state = "hungry";
-  else if (mood < 20) state = "sleeping";
+  if (raw.pendingLevelUp) state = "levelup";
+  else if (minutesSinceLastActivity > 10) state = "sleeping";
+  else if (hunger < 30) state = "hungry";
   else if (mood > 80) state = "happy";
   else state = "idle";
 
@@ -21,11 +30,14 @@ export function createDefaultState(type: PetType, name: string): RawPetState {
     name,
     xp: 0,
     level: 1,
-    hungerAtLastFeed: 0,
+    hungerAtLastFeed: 100,
     moodBase: 80,
     lastActivity: now,
     lastFeed: now,
     pendingLevelUp: false,
+    previousLevel: 1,
+    totalInteractions: 0,
+    visible: true,
     createdAt: now,
   };
 }
@@ -42,8 +54,8 @@ export function feed(raw: RawPetState): RawPetState {
   const resolved = resolveState(raw);
   return {
     ...raw,
-    hungerAtLastFeed: resolved.hunger,
+    hungerAtLastFeed: Math.min(100, resolved.hunger + 50),
     lastFeed: now,
-    moodBase: Math.min(100, raw.moodBase + 10),
+    moodBase: Math.min(100, raw.moodBase + 20),
   };
 }

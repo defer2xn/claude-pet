@@ -29,7 +29,7 @@ allowed-tools: "mcp__claude-pet__pet_show mcp__claude-pet__pet_feed mcp__claude-
 
 ### `switch [type]`
 调用 pet_switch 切换宠物类型，再 pet_show 显示新宠物。
-未指定类型时列出选项：橘猫(cat) 小柴(dog) 小兔(rabbit)
+未指定类型时列出选项：橘猫(cat) 柴犬(shiba) 企鹅(penguin) 仓鼠(hamster) 史莱姆(slime)
 
 ### `name <新名字>`
 调用 pet_rename 设置新名字，确认已生效。

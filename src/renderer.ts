@@ -20,7 +20,7 @@ export function renderToAnsi(frame: Frame, colors: ColorMap): string {
       const botColor = colors[botChar];
 
       if (!topColor && !botColor) {
-        line += "  ";
+        line += " ";
       } else if (topColor && botColor) {
         line += `\x1b[38;2;${topColor[0]};${topColor[1]};${topColor[2]}m\x1b[48;2;${botColor[0]};${botColor[1]};${botColor[2]}m▀`;
       } else if (topColor && !botColor) {

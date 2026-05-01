@@ -1,37 +1,14 @@
-import type { PetType, PetDefinition, Frame, ColorMap } from "./types.js";
+import type { PetType, PetDefinition } from "./types.js";
 import { CAT_DEFINITION } from "./cat.js";
-
-const PLACEHOLDER_FRAME: Frame = Array(32).fill(".".repeat(32));
-
-const DOG_COLORS: ColorMap = { d: [180, 130, 70], w: [252, 248, 242] };
-const RABBIT_COLORS: ColorMap = { r: [240, 220, 220], w: [255, 255, 255] };
-
-const DOG_DEFINITION: PetDefinition = {
-  type: "dog",
-  defaultName: "小柴",
-  colors: DOG_COLORS,
-  frames: {
-    idle: [PLACEHOLDER_FRAME, PLACEHOLDER_FRAME],
-    happy: [PLACEHOLDER_FRAME, PLACEHOLDER_FRAME],
-    hungry: [PLACEHOLDER_FRAME, PLACEHOLDER_FRAME],
-    sleeping: [PLACEHOLDER_FRAME, PLACEHOLDER_FRAME],
-  },
-};
-
-const RABBIT_DEFINITION: PetDefinition = {
-  type: "rabbit",
-  defaultName: "小兔",
-  colors: RABBIT_COLORS,
-  frames: {
-    idle: [PLACEHOLDER_FRAME, PLACEHOLDER_FRAME],
-    happy: [PLACEHOLDER_FRAME, PLACEHOLDER_FRAME],
-    hungry: [PLACEHOLDER_FRAME, PLACEHOLDER_FRAME],
-    sleeping: [PLACEHOLDER_FRAME, PLACEHOLDER_FRAME],
-  },
-};
+import { SHIBA_DEFINITION } from "./shiba.js";
+import { PENGUIN_DEFINITION } from "./penguin.js";
+import { HAMSTER_DEFINITION } from "./hamster.js";
+import { SLIME_DEFINITION } from "./slime.js";
 
 export const PETS: Record<PetType, PetDefinition> = {
   cat: CAT_DEFINITION,
-  dog: DOG_DEFINITION,
-  rabbit: RABBIT_DEFINITION,
+  shiba: SHIBA_DEFINITION,
+  penguin: PENGUIN_DEFINITION,
+  hamster: HAMSTER_DEFINITION,
+  slime: SLIME_DEFINITION,
 };

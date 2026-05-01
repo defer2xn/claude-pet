@@ -9,7 +9,7 @@ NOW=$(date +%s000)
 case "$EVENT" in
   tool_use)
     jq --arg now "$NOW" '
-      .xp += 1 | .lastActivity = ($now | tonumber) |
+      .xp += 1 | .totalInteractions += 1 | .lastActivity = ($now | tonumber) |
       .level = (((.xp / 10) | sqrt | floor) + 1)
     ' "$STATE" > "$TMP" && mv "$TMP" "$STATE"
     ;;
@@ -31,6 +31,16 @@ case "$EVENT" in
     fi
     ;;
   session_start)
+    HUNGER=$(jq --arg now "$NOW" -r '
+      (($now | tonumber) - .lastFeed) / 60000 | floor as $mins |
+      [0, .hungerAtLastFeed - $mins] | max
+    ' "$STATE")
+
+    if [ "$HUNGER" -lt 30 ] 2>/dev/null; then
+      NAME=$(jq -r '.name' "$STATE")
+      echo "{\"continue\":true,\"systemMessage\":\"🍽️ $NAME 饿了！饥饿度: $HUNGER/100。输入 /pet feed 喂食\"}"
+    fi
+
     jq --arg now "$NOW" '.lastActivity = ($now | tonumber)' "$STATE" > "$TMP" && mv "$TMP" "$STATE"
     ;;
 esac

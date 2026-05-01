@@ -16,6 +16,8 @@ const colors: ColorMap = {
   "P": [205, 128, 122],
   "M": [195, 118, 42],
   "g": [200, 192, 182],
+  "x": [255, 220, 60],  // 星星 / 升级闪光
+  "z": [160, 180, 220], // ZZZ 睡眠标记
 };
 
 const idle0: Frame = [
@@ -61,14 +63,80 @@ const idle1: Frame = idle0.map((row, i) => {
   return row;
 });
 
+// happy: 弯弯笑眼 + 腮红
+const happy0: Frame = idle0.map((row, i) => {
+  if (i === 9) return row.replace(/heE/g, "3n3").replace(/Eeh/g, "3n3");
+  if (i === 10) return row.replace(/hkE/g, "3.3").replace(/Ekh/g, "3.3");
+  if (i === 11) return row.replace(/eE/g, "33").replace(/Ee/g, "33");
+  if (i === 12) return "..33p333333333333333333p333.....";
+  if (i === 15) return "....33333333pnp333333333.......";
+  return row;
+});
+
+const happy1: Frame = happy0.map((row, i) => {
+  if (i === 12) return "..333333333333333333333333.....";
+  return row;
+});
+
+// hungry: 半闭眼 + 嘴巴张开
+const hungry0: Frame = idle0.map((row, i) => {
+  if (i === 9) return "..333333333333333333333333.....";
+  if (i === 10) return row.replace(/hkE/g, "3k3").replace(/Ekh/g, "3k3");
+  if (i === 11) return row.replace(/eE/g, "33").replace(/Ee/g, "33");
+  if (i === 15) return "....33333333333333333333.......";
+  if (i === 16) return "....3333g333pnp333g33333.......";
+  return row;
+});
+
+const hungry1: Frame = hungry0.map((row, i) => {
+  if (i === 10) return row.replace(/3k3/g, "3.3");
+  return row;
+});
+
+// sleeping: 闭眼 + ZZZ 标记
+const sleeping0: Frame = idle0.map((row, i) => {
+  if (i === 2) return ".....33..........zzz.33........";
+  if (i === 9) return row.replace(/heE/g, "3n3").replace(/Eeh/g, "3n3");
+  if (i === 10) return row.replace(/hkE/g, "333").replace(/Ekh/g, "333");
+  if (i === 11) return row.replace(/eE/g, "33").replace(/Ee/g, "33");
+  return row;
+});
+
+const sleeping1: Frame = idle0.map((row, i) => {
+  if (i === 1) return "......3..........zzz.3..........";
+  if (i === 9) return row.replace(/heE/g, "3n3").replace(/Eeh/g, "3n3");
+  if (i === 10) return row.replace(/hkE/g, "333").replace(/Ekh/g, "333");
+  if (i === 11) return row.replace(/eE/g, "33").replace(/Ee/g, "33");
+  return row;
+});
+
+// levelup: 星星闪烁
+const levelup0: Frame = idle0.map((row, i) => {
+  if (i === 0) return "...x..........x.......x.........";
+  if (i === 3) return "....333.....x........333........";
+  if (i === 6) return ".x333333333333333333333333.....";
+  if (i === 13) return "..x33333333333333333333333.....";
+  if (i === 27) return "...553333333333333333355..x....";
+  return row;
+});
+
+const levelup1: Frame = idle0.map((row, i) => {
+  if (i === 1) return "......3.....x........3..........";
+  if (i === 5) return "..33p333......x.....333p33.....";
+  if (i === 14) return "...333333333333333333333..x....";
+  if (i === 25) return ".x5533333333www3333333355......";
+  return row;
+});
+
 export const CAT_DEFINITION: PetDefinition = {
   type: "cat",
   defaultName: "小橘",
   colors,
   frames: {
     idle: [idle0, idle1],
-    happy: [idle0, idle1],
-    hungry: [idle0, idle1],
-    sleeping: [idle0, idle1],
+    happy: [happy0, happy1],
+    hungry: [hungry0, hungry1],
+    sleeping: [sleeping0, sleeping1],
+    levelup: [levelup0, levelup1],
   },
 };

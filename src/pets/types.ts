@@ -1,4 +1,4 @@
-export type PetType = "cat" | "dog" | "rabbit";
+export type PetType = "cat" | "shiba" | "penguin" | "hamster" | "slime";
 
 export interface RawPetState {
   type: PetType;
@@ -10,10 +10,13 @@ export interface RawPetState {
   lastActivity: number;
   lastFeed: number;
   pendingLevelUp: boolean;
+  previousLevel: number;
+  totalInteractions: number;
+  visible: boolean;
   createdAt: number;
 }
 
-export type PetStateKind = "idle" | "happy" | "hungry" | "sleeping";
+export type PetStateKind = "idle" | "happy" | "hungry" | "sleeping" | "levelup";
 
 export interface ResolvedPetState extends RawPetState {
   hunger: number;
